@@ -14,7 +14,34 @@ public class CheckpointController : MonoBehaviour
 
     void Start()
     {
-        
+        GameObject[] Checkpoint_platforms = GameObject.FindGameObjectsWithTag("Checkpoints");
+        for(int i = 0; i < Checkpoint_platforms.Length; i++)
+        {
+            for(int j = 0; j < Checkpoint_platforms.Length; j++)
+            {
+                int i_cp = Checkpoint_platforms[i].GetComponent<CheckPointScript>().checkPoint;
+                int j_cp = Checkpoint_platforms[j].GetComponent<CheckPointScript>().checkPoint;
+                
+                if(i_cp < j_cp)
+                {
+                    GameObject temp = Checkpoint_platforms[i];
+                    Checkpoint_platforms[i] = Checkpoint_platforms[j];
+                    Checkpoint_platforms[j] = temp;
+                }
+            }
+        }
+        SaveDatas datas = GetSaveData();
+        datas.TotalCheckpoints = Checkpoint_platforms.Length;
+        datas.x = new float[datas.TotalCheckpoints];
+        datas.y = new float[datas.TotalCheckpoints];
+        datas.z = new float[datas.TotalCheckpoints];
+        for (int i = 0; i < Checkpoint_platforms.Length; i++)
+        {
+            datas.x[i] = Checkpoint_platforms[i].transform.position.x;
+            datas.y[i] = Checkpoint_platforms[i].transform.position.y;
+            datas.z[i] = Checkpoint_platforms[i].transform.position.z;
+        }
+        SaveSystem.SaveData(datas);
     }
 
     void Update()
@@ -29,7 +56,6 @@ public class CheckpointController : MonoBehaviour
         RaycastHit hit;
         Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, checkPointLayer);
         if (hit.transform == null) return;
-        print(hit.transform.gameObject.GetComponent<CheckPointScript>().checkPoint);
         SaveDatas data = GetSaveData();
         if (data.currentCheckpoint < hit.transform.gameObject.GetComponent<CheckPointScript>().checkPoint)
         {
