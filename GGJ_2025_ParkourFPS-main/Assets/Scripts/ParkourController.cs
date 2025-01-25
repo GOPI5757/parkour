@@ -208,7 +208,7 @@ public class ParkourController : MonoBehaviour
         xRot = Mathf.Clamp(xRot, -90f, 90f);
         if(!cameraLocked)
         {
-            attachedCam.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, Mathf.Round(yRot * 10f) / 10f, wallRunCameraTilt);
+            attachedCam.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, 0f, wallRunCameraTilt);
         }
         transform.rotation = Quaternion.Euler(0f, yRot, 0f);
 
