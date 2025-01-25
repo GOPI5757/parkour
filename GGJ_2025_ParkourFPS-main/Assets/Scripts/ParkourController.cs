@@ -6,6 +6,7 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEditor.ShaderGraph;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class ParkourController : MonoBehaviour
 {
@@ -13,11 +14,12 @@ public class ParkourController : MonoBehaviour
     [Header("Camera")]
     public float mouseSensitivity;
     public GameObject attachedCam;
+    public float tiltSpeed;
 
     [Header("Movement")]
     public TMP_Text speedText;
     public float runForce;
-    public float maxSpeed;
+    public float maxRunSpeed;
     public float groundDrag;
     public float airDrag;
 
@@ -25,37 +27,68 @@ public class ParkourController : MonoBehaviour
     public float playerHeight;
     public LayerMask groundLayer;
 
+    GameObject currentGroundObject;
+
 
     [Header("Jumping")]
     public float jumpForce;
     public float wallJumpMultiplier;
     public float airMultiplier;
 
+    [Header("Dashing")]
+    public float dashForce;
+    public float maxDashSpeed;
+    public float dashLifeTime;
+    public float dashCoolDown;
+
+    bool dashing;
+    bool canDash;
+    float dashTimer = 0f;
+
+    [Header("Sliding")]
+    public float slideForce;
+    public float maxSlideTime;
+    public float maxSlideSpeed;
+    public float maxSlopeAngle;
+    public float slideYScale;
+
+    bool sliding;
+    float slideTimer;
+    float startYScale;
+
+    RaycastHit slopeHit;
+
+
 
     [Header("Wallrunning")]
     public LayerMask wallLayer;
     public float wallRunForce, maxWallRunTime, maxWallRunSpeed;
-    public float maxWallRunTilt, tiltSpeed;
+    public float maxWallRunTilt;
 
     float wallRunCameraTilt;
+    float maxSpeed;
 
     bool isWallLeft, isWallRight;
     bool isWallRunning;
 
     bool isGrounded;
-    bool isSprinting;
 
     Rigidbody rb;
+    Animator camAnim;
+
+    bool cameraLocked = false;
 
     float horiz, verti;
     float mouseX, mouseY;
-    float moveSpeed;
+    float moveForce;
     float yRot, xRot;
 
     void Start()
     {
-        moveSpeed = runForce;
+        moveForce = runForce;
+        canDash = true;
         rb = GetComponent<Rigidbody>();
+        camAnim = attachedCam.GetComponent<Animator>();
         Application.targetFrameRate = 60;
 
         Cursor.lockState = CursorLockMode.Locked;
@@ -66,9 +99,11 @@ public class ParkourController : MonoBehaviour
     {   
         CheckForInput();
         CheckWallInput();
+        CheckSlideInput();
         CheckForWall();
         GroundCheck();
         ChooseMoveSpeed();
+        ChooseMaxSpeed();
         PlayerLook();
         UpdatePlayerDrag();
 
@@ -79,6 +114,8 @@ public class ParkourController : MonoBehaviour
     void FixedUpdate()
     {
         DoMovement();
+        Dashing();
+        Sliding();
         SpeedControl();
     }
 
@@ -92,11 +129,10 @@ public class ParkourController : MonoBehaviour
 
         if(Input.GetKey(KeyCode.LeftShift))
         {
-            isSprinting = true;
-        }else
-        {
-            isSprinting = false;
+            Dash();
         }
+
+
 
         if(Input.GetKeyDown(KeyCode.Space))
         {
@@ -116,13 +152,41 @@ public class ParkourController : MonoBehaviour
         }
     }
 
+    void CheckSlideInput()
+    {
+        if(Input.GetKeyDown(KeyCode.LeftControl) && (horiz != 0 || verti != 0))
+        {
+            StartSlide();
+        }
+
+        if(Input.GetKeyUp(KeyCode.LeftControl))
+        {
+            StopSlide();
+        }
+    }
+
+    void EnableAnimAndLockCam()
+    {
+        camAnim.enabled = true;
+        cameraLocked = true;
+    }
+
+    void DisableAnimAndLockCam()
+    {
+        camAnim.enabled = false;
+        cameraLocked = false;
+    }
+
     void PlayerLook()
     {
         yRot += mouseX;
 
         xRot -= mouseY;
         xRot = Mathf.Clamp(xRot, -90f, 90f);
-        attachedCam.transform.rotation = Quaternion.Euler(xRot, yRot, wallRunCameraTilt);
+        if(!cameraLocked)
+        {
+            attachedCam.transform.rotation = Quaternion.Euler(xRot, yRot, wallRunCameraTilt);
+        }
         transform.rotation = Quaternion.Euler(0f, yRot, 0f);
 
 
@@ -153,12 +217,46 @@ public class ParkourController : MonoBehaviour
 
     void GroundCheck()
     {
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, groundLayer);
+        RaycastHit hit;
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, groundLayer);
+
+        //currentGroundObject = hit.transform.gameObject;
+    }
+
+    bool OnSlope()
+    {
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerHeight * 0.5f + 0.2f, groundLayer))
+        {
+            float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
+
+            return angle < maxSlopeAngle && angle != 0;
+        }
+        return false;
+    }
+
+    public Vector3 GetSlopeMoveDirection(Vector3 direction)
+    {
+        return Vector3.ProjectOnPlane(direction, slopeHit.normal).normalized;
     }
 
     void ChooseMoveSpeed()
     {
-        moveSpeed = runForce;
+        moveForce = runForce;
+    }
+
+    void ChooseMaxSpeed()
+    {
+        if(sliding)
+        {
+            maxSpeed = maxSlideSpeed;
+        }
+        else if(dashing)
+        {
+            maxSpeed = maxDashSpeed;
+        }else
+        {
+            maxSpeed = maxRunSpeed;
+        }
     }
 
     void DoMovement()
@@ -168,10 +266,10 @@ public class ParkourController : MonoBehaviour
 
         if(isGrounded)
         {
-            rb.AddForce(moveDirection.normalized * moveSpeed, ForceMode.Force);
+            rb.AddForce(moveDirection.normalized * moveForce, ForceMode.Force);
         }else
         {
-            rb.AddForce(moveDirection.normalized * moveSpeed * airMultiplier, ForceMode.Force);
+            rb.AddForce(moveDirection.normalized * moveForce * airMultiplier, ForceMode.Force);
         }
 
     }
@@ -269,6 +367,100 @@ public class ParkourController : MonoBehaviour
 
 
     }
+
+    void Dash()
+    {
+        if(dashing || !canDash) return;
+
+        dashing = true;
+        canDash = false;
+        dashTimer = dashLifeTime;
+        rb.useGravity = false;
+        rb.velocity = Vector3.zero;
+
+    }
+
+    void Dashing()
+    {
+        if(!dashing) return;
+        rb.AddForce(transform.forward * dashForce, ForceMode.Impulse);
+
+        dashTimer -= Time.deltaTime;
+        if(dashTimer <= 0f)
+        {
+            dashing = false;
+            StartCoroutine(DashCooldown());
+        }
+    }
+
+    IEnumerator DashCooldown()
+    {
+        yield return new WaitForSeconds(dashCoolDown);
+        canDash = true;
+    }
+
+    void StartSlide()
+    {
+        if(sliding || !isGrounded) return;
+        sliding = true;
+        EnableAnimAndLockCam();
+
+        if(OnSlope())
+        {
+            camAnim.SetBool("isSlope", true);
+        }else
+        {
+            camAnim.SetBool("slide", true);
+        }
+        startYScale = transform.localScale.y;
+        transform.localScale = new Vector3(transform.localScale.x, slideYScale, transform.localScale.z);
+        rb.AddForce(Vector2.down * 5f, ForceMode.Impulse);
+
+        slideTimer = maxSlideTime;
+    }
+
+    void Sliding()
+    {
+        if(!sliding) return;
+
+
+        //Sliding on straight ground
+        if(!OnSlope() || rb.velocity.y > -0.1f)
+        {
+            rb.AddForce(transform.forward * slideForce, ForceMode.Force);
+
+            slideTimer -= Time.deltaTime;
+        }
+
+        //Sliding on slopes
+        else
+        {
+            rb.AddForce(GetSlopeMoveDirection(transform.forward) * slideForce, ForceMode.Acceleration);
+        }
+    
+        if(slideTimer <= 0f)
+        {
+            StopSlide();
+        }
+    }
+
+    void StopSlide()
+    {
+        if(!sliding) return;
+
+
+        sliding = false;
+        camAnim.SetBool("isSlope", false);
+        camAnim.SetBool("slide", false);
+
+        transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
+    }
+
+    public void SlideAnimFinished()
+    {
+        DisableAnimAndLockCam();
+    }
+
 
     // private void OnCollisionEnter(Collision other) 
     // {

@@ -8,8 +8,6 @@ TagManager:
   - RightTrigger
   - Walls
   - Ground
-  - slopeSlide
-  - sliderEntry
   layers:
   - Default
   - TransparentFX
