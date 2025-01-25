@@ -2748,6 +2748,7 @@ GameObject:
   - component: {fileID: 2053534870}
   - component: {fileID: 2053534869}
   - component: {fileID: 2053534874}
+  - component: {fileID: 2053534875}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -2899,10 +2900,6 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 128
-  checkPointLayer:
-    serializedVersion: 2
-    m_Bits: 512
-  CheckpointText: {fileID: 234330317}
   jumpForce: 12
   wallJumpMultiplier: 1
   airMultiplier: 0.4
@@ -2915,6 +2912,9 @@ MonoBehaviour:
   maxSlideSpeed: 40
   maxSlopeAngle: 45
   slideYScale: 0.5
+  checkPointLayer:
+    serializedVersion: 2
+    m_Bits: 512
   wallLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -2922,6 +2922,23 @@ MonoBehaviour:
   maxWallRunTime: 0
   maxWallRunSpeed: 40
   maxWallRunTilt: 20
+--- !u!114 &2053534875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2053534868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1ad602202ccd9f428b2fb133dfbe54e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  checkPointLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  CheckpointText: {fileID: 234330317}
+  playerHeight: 2
 --- !u!1 &2063269999
 GameObject:
   m_ObjectHideFlags: 0
