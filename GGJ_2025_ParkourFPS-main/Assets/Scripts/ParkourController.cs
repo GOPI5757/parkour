@@ -7,6 +7,7 @@ using Unity.VisualScripting;
 using UnityEditor.ShaderGraph;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Playables;
 
 public class ParkourController : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class ParkourController : MonoBehaviour
     public float maxRunSpeed;
     public float groundDrag;
     public float airDrag;
+    public float slideDrag;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -51,6 +53,13 @@ public class ParkourController : MonoBehaviour
     public float maxSlideSpeed;
     public float maxSlopeAngle;
     public float slideYScale;
+
+    [Header("Sounds")]
+
+    public AudioSource audioSource;
+
+    public AudioClip jumpSound;
+    public AudioClip dashSound;
 
     bool sliding;
     float slideTimer;
@@ -164,6 +173,14 @@ public class ParkourController : MonoBehaviour
         {
             StopSlide();
         }
+    }
+
+    void PlayASound(AudioClip clip)
+    {
+        audioSource.Stop();
+
+        audioSource.clip = clip;
+        audioSource.Play();
     }
 
     void EnableAnimAndLockCam()
@@ -291,7 +308,11 @@ public class ParkourController : MonoBehaviour
 
     void UpdatePlayerDrag()
     {
-        if(isGrounded)
+        if(sliding)
+        {
+            rb.drag = slideDrag;
+        }
+        else if(isGrounded)
         {
             rb.drag = groundDrag;
         }else
@@ -348,12 +369,14 @@ public class ParkourController : MonoBehaviour
             rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
             isGrounded = false;
             rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+            PlayASound(jumpSound);
         }else if(isWallRunning)
         {
             //Upward Walljump
             if(isWallLeft && !Input.GetKey(KeyCode.D) || isWallRight && !Input.GetKey(KeyCode.A))
             {
                 rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+                PlayASound(jumpSound);
             }
 
             //Sidewards Hop
@@ -361,11 +384,13 @@ public class ParkourController : MonoBehaviour
             {
                 rb.AddForce(-transform.right * jumpForce * wallJumpMultiplier, ForceMode.Impulse);
                 rb.AddForce(transform.up * jumpForce / 3, ForceMode.Impulse);
+                PlayASound(jumpSound);
             }
             if(isWallLeft && Input.GetKey(KeyCode.D))
             {
                 rb.AddForce(transform.right * jumpForce * wallJumpMultiplier, ForceMode.Impulse);
                 rb.AddForce(transform.up * jumpForce / 3, ForceMode.Impulse);
+                PlayASound(jumpSound);
             }
         }
 
@@ -381,7 +406,7 @@ public class ParkourController : MonoBehaviour
         dashTimer = dashLifeTime;
         rb.useGravity = false;
         rb.velocity = Vector3.zero;
-
+        PlayASound(dashSound);
     }
 
     void Dashing()
@@ -470,13 +495,16 @@ public class ParkourController : MonoBehaviour
         return SaveSystem.LoadData() == null ? new SaveDatas() : SaveSystem.LoadData();
     }
 
-    // private void OnCollisionEnter(Collision other) 
-    // {
-    //     if(other.transform.CompareTag("Ground"))
-    //     {
-    //         isGrounded = true;
-    //     }
-    // }
+    private void OnCollisionEnter(Collision other) 
+    {
+        if(other.transform.CompareTag("Bubble"))
+        {
+            if(dashing)
+            {
+                other.transform.GetComponent<Bubble>().DestroyBubble();
+            }
+        }
+    }
 
     // private void OnCollisionExit(Collision other) 
     // {
