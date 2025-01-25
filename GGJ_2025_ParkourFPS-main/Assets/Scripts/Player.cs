@@ -7,49 +7,36 @@ using UnityEngine.Rendering;
 public class Player : MonoBehaviour
 {
 
-    [SerializeField]
-    float InitialSpeed, speed, sprintSpeed, SlopeSpeed;
+    public float runSpeed, SlopeSpeed;
+    public float dashForce;
+    float moveSpeed;
 
     float MouseX, MouseY;
 
-    public float x, z;
-
-    [SerializeField]
-    float JumpForce;
-
-    [SerializeField]
+    float horiz, verti;
+    public float JumpForce;
     public GameObject CamParent;
 
     float xRotation = 0f;
     float yRotation = 0f;
 
-    [SerializeField]
     float SlideTimeRun = 0f;
 
-    [SerializeField]
     float SlideTimer = 1f;
 
-    [SerializeField]
     public bool IsSliding = false;
 
-    [SerializeField]
-    public bool IsSlope = false;
+    bool IsSlope = false;
 
-    [SerializeField]
-    public bool IsEnteringSlide = false;
+    bool IsEnteringSlide = false;
 
-    [SerializeField]
-    public bool IsGrounded = false;
-
-    [SerializeField]
-    public bool IsSprinting = false;
+    bool IsGrounded = false;
 
     public Quaternion endTransformLeft, endTransformRight;
 
-    [SerializeField]
-    public bool canGoLeft = true, canGoRight = true, canAffectMouseY = true, canGoForward = true; 
+    bool canGoLeft = true, canGoRight = true, canAffectMouseY = true, canGoForward = true; 
 
-    public Rigidbody rb;
+    Rigidbody rb;
 
     public static Player Instance;
 
@@ -64,36 +51,36 @@ public class Player : MonoBehaviour
 
     void Start()
     {
-        speed = InitialSpeed;
+        moveSpeed = runSpeed;
     }
 
     void Update()
     {
         Cursor.visible = false;
-        x = Input.GetAxisRaw("Horizontal");
-        z = Input.GetAxisRaw("Vertical");
+        horiz = Input.GetAxisRaw("Horizontal");
+        verti = Input.GetAxisRaw("Vertical");
 
         if (!canGoLeft)
         {
-            if (x < 0)
+            if (horiz < 0)
             {
-                x = 0;
+                horiz = 0;
             }
         }
 
         if (!canGoRight)
         {
-            if(x > 0)
+            if(horiz > 0)
             {
-                x = 0;
+                horiz = 0;
             }
         }
 
         if(!canGoForward)
         {
-            if(z > 0)
+            if(verti > 0)
             {
-                z = 0f;
+                verti = 0f;
             }
         }
 
@@ -104,7 +91,7 @@ public class Player : MonoBehaviour
 
         if(Input.GetKeyDown(KeyCode.LeftControl) && !IsSliding && (canGoLeft && canGoRight) && IsGrounded)
         {
-            if(z > 0)
+            if(verti > 0)
             {
                 rb.AddForce(transform.forward * 10f, ForceMode.Impulse);
                 CamParent.GetComponent<Animator>().SetBool("CanSlide", true);
@@ -121,16 +108,6 @@ public class Player : MonoBehaviour
                 IsSliding = false;
                 CamParent.GetComponent<Animator>().SetBool("CanSlide", false);
             }
-        }
-
-        if(Input.GetKey(KeyCode.LeftShift))
-        {
-            IsSprinting = true;
-            speed = sprintSpeed;
-        } else
-        {
-            IsSprinting = false;
-            speed = InitialSpeed;
         }
 
         if (!canGoLeft)
@@ -150,11 +127,9 @@ public class Player : MonoBehaviour
             CamParent.GetComponent<Animator>().SetBool("CanTiltLeft", false);
         }
 
-        transform.Translate(x * speed * Time.deltaTime, 0f, z * speed * Time.deltaTime);
-        if(Input.GetKeyDown(KeyCode.Space) && !IsSliding)
+        if(Input.GetKeyDown(KeyCode.Space))
         {
-            rb.AddForce(0f, JumpForce, 0f);
-            IsGrounded = false;
+            Jump();
         }
 
         /*if(IsEnteringSlide)
@@ -162,6 +137,7 @@ public class Player : MonoBehaviour
             CamParent.transform.rotation = Quaternion.Lerp(CamParent.transform.rotation, Quaternion.EulerAngles(0f, 0f, 0f), Time.deltaTime * 10f);
         }*/
 
+        DoMovement();
         MouseControl();
     }
 
@@ -182,21 +158,37 @@ public class Player : MonoBehaviour
         }
     }
 
+    void DoMovement()
+    {
+        rb.AddForce(horiz * moveSpeed * Time.deltaTime, 0f, verti * moveSpeed * Time.deltaTime);
+    }
+
+    void Jump()
+    {
+        if(IsSliding || !IsGrounded) return;
+        rb.AddForce(0f, JumpForce, 0f);
+        IsGrounded = false; 
+    }
+
     private void OnCollisionEnter(Collision collision)
     {
         if(collision.gameObject.tag == "Ground")
         {
             IsGrounded = true;
         }
-
-        
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnCollisionExit(Collision collision)
     {
-        /*if (other.gameObject.tag == "slopeSlide")
+        if(collision.gameObject.tag == "Ground")
         {
-            CamParent.GetComponent<Animator>().SetBool("IsSlope", true);
-        }*/
+            IsGrounded = false;
+        }
+    }
+
+    public void OnHitSlope()
+    {
+        IsSlope = true;
+        CamParent.GetComponent<Animator>().SetBool("IsSlope", true);
     }
 }
