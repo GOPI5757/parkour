@@ -21,6 +21,11 @@ public class ParkourController : MonoBehaviour
     public float groundDrag;
     public float airDrag;
 
+    [Header("Ground Check")]
+    public float playerHeight;
+    public LayerMask groundLayer;
+
+
     [Header("Jumping")]
     public float jumpForce;
     public float wallJumpMultiplier;
@@ -62,6 +67,7 @@ public class ParkourController : MonoBehaviour
         CheckForInput();
         CheckWallInput();
         CheckForWall();
+        GroundCheck();
         ChooseMoveSpeed();
         PlayerLook();
         UpdatePlayerDrag();
@@ -143,6 +149,11 @@ public class ParkourController : MonoBehaviour
                 wallRunCameraTilt += tiltSpeed * Time.deltaTime;
             }
         }
+    }
+
+    void GroundCheck()
+    {
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, groundLayer);
     }
 
     void ChooseMoveSpeed()
@@ -247,31 +258,31 @@ public class ParkourController : MonoBehaviour
             if(isWallRight && Input.GetKey(KeyCode.A))
             {
                 rb.AddForce(-transform.right * jumpForce * wallJumpMultiplier, ForceMode.Impulse);
-                rb.AddForce(transform.up * jumpForce / 2, ForceMode.Impulse);
+                rb.AddForce(transform.up * jumpForce / 3, ForceMode.Impulse);
             }
             if(isWallLeft && Input.GetKey(KeyCode.D))
             {
                 rb.AddForce(transform.right * jumpForce * wallJumpMultiplier, ForceMode.Impulse);
-                rb.AddForce(transform.up * jumpForce / 2, ForceMode.Impulse);
+                rb.AddForce(transform.up * jumpForce / 3, ForceMode.Impulse);
             }
         }
 
 
     }
 
-    private void OnCollisionEnter(Collision other) 
-    {
-        if(other.transform.CompareTag("Ground"))
-        {
-            isGrounded = true;
-        }
-    }
+    // private void OnCollisionEnter(Collision other) 
+    // {
+    //     if(other.transform.CompareTag("Ground"))
+    //     {
+    //         isGrounded = true;
+    //     }
+    // }
 
-    private void OnCollisionExit(Collision other) 
-    {
-        if(other.transform.CompareTag("Ground"))
-        {
-            isGrounded = false;
-        }
-    }
+    // private void OnCollisionExit(Collision other) 
+    // {
+    //     if(other.transform.CompareTag("Ground"))
+    //     {
+    //         isGrounded = false;
+    //     }
+    // }
 }
