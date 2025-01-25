@@ -466,7 +466,7 @@ public class ParkourController : MonoBehaviour
         //Sliding on straight ground
         if(!OnSlope() || rb.velocity.y > -0.1f)
         {
-            rb.AddForce(transform.forward * slideForce, ForceMode.Force);
+            rb.AddForce(transform.forward * slideForce, ForceMode.Acceleration);
 
             slideTimer -= Time.deltaTime;
         }
