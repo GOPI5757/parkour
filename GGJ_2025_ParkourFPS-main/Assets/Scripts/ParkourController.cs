@@ -115,7 +115,7 @@ public class ParkourController : MonoBehaviour
         ResetCheckpoint();
 
         Vector3 movementVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-        speedText.text = $"Speed: {movementVel.magnitude}";
+        speedText.text = $"Speed: {(int)movementVel.magnitude}";
     }
 
     void FixedUpdate()
@@ -147,8 +147,8 @@ public class ParkourController : MonoBehaviour
         horiz = Input.GetAxisRaw("Horizontal");
         verti = Input.GetAxisRaw("Vertical");
 
-        mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * mouseSensitivity;
-        mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * mouseSensitivity;
+        mouseX = Input.GetAxis("Mouse X") * Time.deltaTime * mouseSensitivity;
+        mouseY = Input.GetAxis("Mouse Y") * Time.deltaTime * mouseSensitivity;
 
         if(Input.GetKey(KeyCode.LeftShift))
         {
@@ -208,7 +208,7 @@ public class ParkourController : MonoBehaviour
         xRot = Mathf.Clamp(xRot, -90f, 90f);
         if(!cameraLocked)
         {
-            attachedCam.transform.rotation = Quaternion.Euler(xRot, yRot, wallRunCameraTilt);
+            attachedCam.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, Mathf.Round(yRot * 10f) / 10f, wallRunCameraTilt);
         }
         transform.rotation = Quaternion.Euler(0f, yRot, 0f);
 
