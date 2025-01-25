@@ -27,7 +27,11 @@ public class ParkourController : MonoBehaviour
     public float playerHeight;
     public LayerMask groundLayer;
 
-    GameObject currentGroundObject;
+    [Header("Checkpoint Control")]
+    public LayerMask checkPointLayer;
+    public TMP_Text CheckpointText;
+
+    //GameObject currentGroundObject;
 
 
     [Header("Jumping")]
@@ -96,16 +100,19 @@ public class ParkourController : MonoBehaviour
     }
 
     void Update()
-    {   
+    {
+        SetCheckpointText();
         CheckForInput();
         CheckWallInput();
         CheckSlideInput();
         CheckForWall();
         GroundCheck();
+        CheckPointControl();
         ChooseMoveSpeed();
         ChooseMaxSpeed();
         PlayerLook();
         UpdatePlayerDrag();
+        ResetCheckpoint();
 
         Vector3 movementVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         speedText.text = $"Speed: {movementVel.magnitude}";
@@ -117,6 +124,22 @@ public class ParkourController : MonoBehaviour
         Dashing();
         Sliding();
         SpeedControl();
+    }
+
+    void SetCheckpointText()
+    {
+        SaveDatas Data = GetSaveData();
+        CheckpointText.text = Data.currentCheckpoint.ToString();
+    }
+
+    void ResetCheckpoint()
+    {
+        if(Input.GetKeyDown(KeyCode.R))
+        {
+            SaveDatas Data = GetSaveData();
+            Data.currentCheckpoint = 0;
+            SaveSystem.SaveData(Data);
+        }
     }
 
     void CheckForInput()
@@ -218,9 +241,25 @@ public class ParkourController : MonoBehaviour
     void GroundCheck()
     {
         RaycastHit hit;
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, groundLayer);
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, groundLayer) ||
+            Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, checkPointLayer);
 
         //currentGroundObject = hit.transform.gameObject;
+    }
+
+    void CheckPointControl()
+    {
+        RaycastHit hit;
+        Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, checkPointLayer);
+        if (hit.transform == null) return;
+        print(hit.transform.gameObject.GetComponent<CheckPointScript>().checkPoint);
+        SaveDatas data = GetSaveData();
+        if (data.currentCheckpoint < hit.transform.gameObject.GetComponent<CheckPointScript>().checkPoint) { 
+
+            data.currentCheckpoint = hit.transform.gameObject.GetComponent<CheckPointScript>().checkPoint;
+            SaveSystem.SaveData(data);
+            CheckpointText.text = data.currentCheckpoint.ToString();
+        }
     }
 
     bool OnSlope()
@@ -461,6 +500,10 @@ public class ParkourController : MonoBehaviour
         DisableAnimAndLockCam();
     }
 
+    SaveDatas GetSaveData()
+    {
+        return SaveSystem.LoadData() == null ? new SaveDatas() : SaveSystem.LoadData();
+    }
 
     // private void OnCollisionEnter(Collision other) 
     // {

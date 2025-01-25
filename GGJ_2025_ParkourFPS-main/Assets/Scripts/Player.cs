@@ -28,8 +28,6 @@ public class Player : MonoBehaviour
 
     bool IsSlope = false;
 
-    bool IsEnteringSlide = false;
-
     bool IsGrounded = false;
 
     public Quaternion endTransformLeft, endTransformRight;
@@ -131,11 +129,6 @@ public class Player : MonoBehaviour
         {
             Jump();
         }
-
-        /*if(IsEnteringSlide)
-        {
-            CamParent.transform.rotation = Quaternion.Lerp(CamParent.transform.rotation, Quaternion.EulerAngles(0f, 0f, 0f), Time.deltaTime * 10f);
-        }*/
 
         DoMovement();
         MouseControl();
