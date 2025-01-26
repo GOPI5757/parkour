@@ -126,6 +126,11 @@ public class ParkourController : MonoBehaviour
     [SerializeField]
     TMP_Text TimeTxt;
 
+    [Header("EndScreen")]
+    bool gameFinished;
+    public GameObject endScreenUI;
+    public TMP_Text scoreText;
+
     public static ParkourController instance;
 
     private void Awake()
@@ -211,6 +216,7 @@ public class ParkourController : MonoBehaviour
 
     void TimeSetup()
     {
+        if(gameFinished) return;
         Seconds += Time.deltaTime;
         if(Seconds >= 60f)
         {
@@ -638,8 +644,20 @@ public class ParkourController : MonoBehaviour
 
         if(other.transform.CompareTag("FinishLine"))
         {
-            SceneManager.LoadScene(2);
+            OpenEndScreen();
         }
+    }
+
+    void OpenEndScreen()
+    {
+        gameFinished = true;
+        endScreenUI.SetActive(true);
+        scoreText.text = $"Score: {TimeTxt.text}";
+    }
+
+    public void BackToMainMenu()
+    {
+        SceneManager.LoadScene(0);
     }
 
     // private void OnCollisionExit(Collision other) 
