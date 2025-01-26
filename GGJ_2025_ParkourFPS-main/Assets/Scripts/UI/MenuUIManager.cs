@@ -13,6 +13,7 @@ public class MenuUIManager : MonoBehaviour
 {
     public GameObject mainMenuUI;
     public GameObject optionsMenuUI;
+    public GameObject controlsMenuUI;
     public GameObject creditsMenuUI;
 
     public TMP_Dropdown resolutionDropdown;
@@ -153,6 +154,15 @@ public class MenuUIManager : MonoBehaviour
         mainMenuUI.SetActive(false);
         optionsMenuUI.SetActive(true);
         creditsMenuUI.SetActive(false);
+        controlsMenuUI.SetActive(false);
+    }
+
+    public void OpenControlsMenu()
+    {
+        mainMenuUI.SetActive(false);
+        optionsMenuUI.SetActive(false);
+        creditsMenuUI.SetActive(false);
+        controlsMenuUI.SetActive(true);
     }
 
     public void OpenCreditsMenu()
@@ -160,6 +170,7 @@ public class MenuUIManager : MonoBehaviour
         mainMenuUI.SetActive(false);
         optionsMenuUI.SetActive(false);
         creditsMenuUI.SetActive(true);
+        controlsMenuUI.SetActive(false);
     }
 
     public void BackToMainMenu()
@@ -167,6 +178,7 @@ public class MenuUIManager : MonoBehaviour
         mainMenuUI.SetActive(true);
         optionsMenuUI.SetActive(false);
         creditsMenuUI.SetActive(false);
+        controlsMenuUI.SetActive(false);
     }
 
     public void QuitGame()

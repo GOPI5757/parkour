@@ -11,22 +11,14 @@ public class MovingPlatform : MonoBehaviour
     Vector3 StartPos;
     Vector3 FinalTargetPos;
 
-    [SerializeField]
-    Vector3 normalizePos;
+    float elapsedTime, elapsedWaitTime;
+    public float LerpTime, WaitTime;
 
-    [SerializeField]
-    float elapsedTime, LerpTime, elapsedWaitTime, WaitTime;
-
-    [SerializeField]
     bool IsWaiting = false;
 
-    [SerializeField]
     float MoveTime = 0f;
 
-    [SerializeField]
-    float StartMoveTimer = 2f;
-
-    [SerializeField]
+    public float StartMoveTimer = 2f;
     bool canMove = false;
 
     void Start()

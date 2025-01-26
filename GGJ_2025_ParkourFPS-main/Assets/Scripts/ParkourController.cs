@@ -2,12 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 using TMPro;
 using Unity.VisualScripting;
-using UnityEditor.ShaderGraph;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Playables;
+using UnityEngine.SceneManagement;
 
 public class ParkourController : MonoBehaviour
 {
@@ -51,6 +52,7 @@ public class ParkourController : MonoBehaviour
     public float slideForce;
     public float maxSlideTime;
     public float maxSlideSpeed;
+    public float slopeRotSpeed;
     public float maxSlopeAngle;
     public float slideYScale;
 
@@ -62,7 +64,7 @@ public class ParkourController : MonoBehaviour
     public AudioClip dashSound;
     public AudioClip keySound;
 
-    bool sliding;
+    bool sliding, autoSliding;
     float slideTimer;
     float startYScale;
 
@@ -153,6 +155,7 @@ public class ParkourController : MonoBehaviour
         CheckSlideInput();
         CheckForWall();
         GroundCheck();
+        RotateToGround();
         ChooseMoveSpeed();
         ChooseMaxSpeed();
         PlayerLook();
@@ -174,6 +177,7 @@ public class ParkourController : MonoBehaviour
         DoMovement();
         Dashing();
         Sliding();
+        AutoSlopeSliding();
         SpeedControl();
     }
 
@@ -258,6 +262,15 @@ public class ParkourController : MonoBehaviour
         {
             StopSlide();
         }
+
+        if(OnSlope())
+        {
+            StartAutoSlide();
+        }else if(!sliding && autoSliding)
+        {
+            Debug.Log("Slope stopped");
+            StopSlide();
+        }
     }
 
     public void PlayASound(AudioClip clip)
@@ -270,13 +283,16 @@ public class ParkourController : MonoBehaviour
 
     void EnableAnimAndLockCam()
     {
-        //camAnim.enabled = true;
+        camAnim.enabled = true;
+        camAnim.Rebind();
+        camAnim.Update(0f);
         cameraLocked = true;
     }
 
     void DisableAnimAndLockCam()
     {
-        //camAnim.enabled = false;
+        xRot = 0f;
+        camAnim.enabled = false;
         cameraLocked = false;
     }
 
@@ -288,7 +304,7 @@ public class ParkourController : MonoBehaviour
         xRot = Mathf.Clamp(xRot, -90f, 90f);
         if(!cameraLocked)
         {
-            Camera.main.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, 0f, wallRunCameraTilt);
+            attachedCam.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, 0f, wallRunCameraTilt);
         }
         transform.rotation = Quaternion.Euler(0f, yRot, 0f);
 
@@ -321,12 +337,30 @@ public class ParkourController : MonoBehaviour
     void GroundCheck()
     {
         RaycastHit hit;
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, groundLayer) ||
-            Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, checkPointLayer);
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, out hit, playerHeight * 0.5f + 0.2f, groundLayer);
 
         //currentGroundObject = hit.transform.gameObject;
     }
+    
 
+    void RotateToGround()
+    {
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerHeight * 0.5f + 0.2f, groundLayer))
+        {
+            // Get the slope normal
+            Vector3 slopeNormal = slopeHit.normal;
+
+            // Calculate the target rotation
+            Quaternion slopeRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(transform.forward, slopeNormal), slopeNormal);
+
+            Vector3 targetEulerAngles = slopeRotation.eulerAngles;
+            targetEulerAngles.y = transform.eulerAngles.y; // Keep current Y rotation
+            targetEulerAngles.z = 0; 
+
+            // Smoothly rotate the player towards the slope
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(targetEulerAngles), Time.deltaTime * slopeRotSpeed);
+        }
+    }
     
 
     bool OnSlope()
@@ -340,9 +374,9 @@ public class ParkourController : MonoBehaviour
         return false;
     }
 
-    public Vector3 GetSlopeMoveDirection(Vector3 direction)
+    public Vector3 GetSlopeMoveDirection()
     {
-        return Vector3.ProjectOnPlane(direction, slopeHit.normal).normalized;
+        return Vector3.ProjectOnPlane(Vector3.down, slopeHit.normal).normalized;
     }
 
     void ChooseMoveSpeed()
@@ -352,7 +386,7 @@ public class ParkourController : MonoBehaviour
 
     void ChooseMaxSpeed()
     {
-        if(sliding)
+        if(sliding || autoSliding)
         {
             maxSpeed = maxSlideSpeed;
         }
@@ -515,17 +549,11 @@ public class ParkourController : MonoBehaviour
 
     void StartSlide()
     {
-        if(sliding || !isGrounded) return;
+        if(sliding || !isGrounded || OnSlope() || autoSliding) return;
         sliding = true;
         EnableAnimAndLockCam();
 
-        if(OnSlope())
-        {
-            camAnim.SetBool("isSlope", true);
-        }else
-        {
-            camAnim.SetBool("slide", true);
-        }
+        camAnim.SetBool("slide", true);
         startYScale = transform.localScale.y;
         transform.localScale = new Vector3(transform.localScale.x, slideYScale, transform.localScale.z);
         rb.AddForce(Vector2.down * 5f, ForceMode.Impulse);
@@ -535,7 +563,7 @@ public class ParkourController : MonoBehaviour
 
     void Sliding()
     {
-        if(!sliding) return;
+        if(!sliding || autoSliding) return;
 
 
         //Sliding on straight ground
@@ -545,12 +573,6 @@ public class ParkourController : MonoBehaviour
 
             slideTimer -= Time.deltaTime;
         }
-
-        //Sliding on slopes
-        else
-        {
-            rb.AddForce(GetSlopeMoveDirection(transform.forward) * slideForce, ForceMode.Acceleration);
-        }
     
         if(slideTimer <= 0f)
         {
@@ -558,20 +580,44 @@ public class ParkourController : MonoBehaviour
         }
     }
 
+    void StartAutoSlide()
+    {
+        if(autoSliding || !isGrounded || sliding) return;
+        autoSliding = true;
+        //EnableAnimAndLockCam();
+
+        //camAnim.SetBool("isSlope", true);
+
+        startYScale = transform.localScale.y;
+        transform.localScale = new Vector3(transform.localScale.x, slideYScale, transform.localScale.z);
+        rb.AddForce(Vector2.down * 5f, ForceMode.Impulse);
+
+    }
+
+    void AutoSlopeSliding()
+    {
+        if(!autoSliding) return;
+        rb.AddForce(GetSlopeMoveDirection() * slideForce, ForceMode.Acceleration);
+    }
+    
+
     void StopSlide()
     {
-        if(!sliding) return;
+        if(!sliding && !autoSliding) return;
 
 
         sliding = false;
+        autoSliding = false;
         camAnim.SetBool("isSlope", false);
         camAnim.SetBool("slide", false);
 
         transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
     }
+    
 
     public void SlideAnimFinished()
     {
+        Debug.Log("Slide completed!");
         DisableAnimAndLockCam();
     }
 
@@ -588,6 +634,11 @@ public class ParkourController : MonoBehaviour
             {
                 other.transform.GetComponent<Bubble>().DestroyBubble();
             }
+        }
+
+        if(other.transform.CompareTag("FinishLine"))
+        {
+            SceneManager.LoadScene(2);
         }
     }
 

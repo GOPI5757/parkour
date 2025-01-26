@@ -29,7 +29,7 @@ public class KeyManager : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if(collision.gameObject.tag == "Player")
+        if(collision.gameObject.tag == "Player" && collision.gameObject.GetComponent<ParkourController>().HasKey)
         {
             collision.gameObject.GetComponent<ParkourController>().HasKey = false;
             collision.gameObject.GetComponent<ParkourController>().key_tick_img.SetActive(false);

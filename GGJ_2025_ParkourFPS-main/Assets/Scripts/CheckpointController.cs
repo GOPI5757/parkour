@@ -42,13 +42,18 @@ public class CheckpointController : MonoBehaviour
             datas.z[i] = Checkpoint_platforms[i].transform.position.z;
         }
         SaveSystem.SaveData(datas);
+
+        Respawn();
     }
 
     void Update()
     {
         CheckpointText.text = GetSaveData().currentCheckpoint.ToString();
         CheckPointControl();
-        ResetCheckpoint();
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Respawn();
+        }
     }
 
     void CheckPointControl()
@@ -65,14 +70,13 @@ public class CheckpointController : MonoBehaviour
         }
     }
 
-    void ResetCheckpoint()
+    public void Respawn()
     {
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            SaveDatas Data = GetSaveData();
-            Data.currentCheckpoint = 0;
-            SaveSystem.SaveData(Data);
-        }
+
+        transform.position = new Vector3(GetSaveData().x[GetSaveData().currentCheckpoint],
+            GetSaveData().y[GetSaveData().currentCheckpoint] + 2f,
+            GetSaveData().z[GetSaveData().currentCheckpoint]);
+
     }
 
     SaveDatas GetSaveData()
