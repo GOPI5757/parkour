@@ -60,6 +60,7 @@ public class ParkourController : MonoBehaviour
 
     public AudioClip jumpSound;
     public AudioClip dashSound;
+    public AudioClip keySound;
 
     bool sliding;
     float slideTimer;
@@ -93,6 +94,46 @@ public class ParkourController : MonoBehaviour
     float moveForce;
     float yRot, xRot;
 
+    [Header("Button Images")]
+
+    [SerializeField]
+    GameObject SpaceBar_img;
+
+    [SerializeField]
+    GameObject lctrl_img;
+
+    [SerializeField]
+    GameObject lshift_img;
+
+    [Header("Other")]
+
+    [SerializeField]
+    public bool HasKey = false;
+
+    [SerializeField]
+    public GameObject key_tick_img;
+
+    [Header("Time")]
+
+    [SerializeField]
+    float Seconds = 0f;
+
+    [SerializeField]
+    int minutes = 0;
+
+    [SerializeField]
+    TMP_Text TimeTxt;
+
+    public static ParkourController instance;
+
+    private void Awake()
+    {
+        if(instance == null)
+        {
+            instance = this;
+        }
+    }
+
     void Start()
     {
         moveForce = runForce;
@@ -116,6 +157,13 @@ public class ParkourController : MonoBehaviour
         ChooseMaxSpeed();
         PlayerLook();
         UpdatePlayerDrag();
+        SetButtonAnimations();
+        TimeSetup();
+
+        if (HasKey)
+        {
+            key_tick_img.SetActive(true);
+        }
 
         Vector3 movementVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         speedText.text = $"Speed: {(int)movementVel.magnitude}";
@@ -127,6 +175,45 @@ public class ParkourController : MonoBehaviour
         Dashing();
         Sliding();
         SpeedControl();
+    }
+
+    void SetButtonAnimations()
+    {
+        if (isGrounded)
+        {
+            SpaceBar_img.GetComponent<Animator>().SetBool("HasClicked", false);
+        }
+        else
+        {
+            SpaceBar_img.GetComponent<Animator>().SetBool("HasClicked", true);
+        }
+
+        if(!sliding)
+        {
+            lctrl_img.GetComponent<Animator>().SetBool("HasClicked", false);
+        } else
+        {
+            lctrl_img.GetComponent<Animator>().SetBool("HasClicked", true);
+        }
+
+        if(!dashing)
+        {
+            lshift_img.GetComponent<Animator>().SetBool("HasClicked", false);
+        } else
+        {
+            lshift_img.GetComponent<Animator>().SetBool("HasClicked", true);
+        }
+    }
+
+    void TimeSetup()
+    {
+        Seconds += Time.deltaTime;
+        if(Seconds >= 60f)
+        {
+            Seconds = 0f;
+            minutes++;
+        }
+        TimeTxt.text = $"{minutes.ToString("00")}:{((int)Seconds).ToString("00")}";
     }
 
     void CheckForInput()
@@ -141,8 +228,6 @@ public class ParkourController : MonoBehaviour
         {
             Dash();
         }
-
-
 
         if(Input.GetKeyDown(KeyCode.Space))
         {
@@ -175,7 +260,7 @@ public class ParkourController : MonoBehaviour
         }
     }
 
-    void PlayASound(AudioClip clip)
+    public void PlayASound(AudioClip clip)
     {
         audioSource.Stop();
 
@@ -185,13 +270,13 @@ public class ParkourController : MonoBehaviour
 
     void EnableAnimAndLockCam()
     {
-        camAnim.enabled = true;
+        //camAnim.enabled = true;
         cameraLocked = true;
     }
 
     void DisableAnimAndLockCam()
     {
-        camAnim.enabled = false;
+        //camAnim.enabled = false;
         cameraLocked = false;
     }
 
@@ -203,7 +288,7 @@ public class ParkourController : MonoBehaviour
         xRot = Mathf.Clamp(xRot, -90f, 90f);
         if(!cameraLocked)
         {
-            attachedCam.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, 0f, wallRunCameraTilt);
+            Camera.main.transform.localRotation = Quaternion.Euler(Mathf.Round(xRot * 10f) / 10f, 0f, wallRunCameraTilt);
         }
         transform.rotation = Quaternion.Euler(0f, yRot, 0f);
 
