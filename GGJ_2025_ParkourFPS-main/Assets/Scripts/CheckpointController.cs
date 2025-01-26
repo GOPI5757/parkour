@@ -12,6 +12,8 @@ public class CheckpointController : MonoBehaviour
     [Header("Ground Check")]
     public float playerHeight;
 
+
+    
     void Start()
     {
         GameObject[] Checkpoint_platforms = GameObject.FindGameObjectsWithTag("Checkpoints");

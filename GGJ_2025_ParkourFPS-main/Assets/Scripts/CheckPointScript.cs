@@ -7,13 +7,10 @@ public class CheckPointScript : MonoBehaviour
     [SerializeField]
     public int checkPoint = 0;
 
-    void Start()
-    {
-        
-    }
 
-    void Update()
+    public void GotCheckpoint()
     {
-        
+        GetComponent<AudioSource>().Play();
+        GetComponent<BoxCollider>().enabled = false;
     }
 }

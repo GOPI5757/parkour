@@ -20,6 +20,8 @@ public class ParkourController : MonoBehaviour
 
     [Header("Movement")]
     public TMP_Text speedText;
+    public TMP_Text distFromEndText;
+    public Transform endLocation;
     public float runForce;
     public float maxRunSpeed;
     public float groundDrag;
@@ -175,6 +177,12 @@ public class ParkourController : MonoBehaviour
 
         Vector3 movementVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         speedText.text = $"Speed: {(int)movementVel.magnitude}";
+
+        float distance = Vector3.Distance(transform.position, endLocation.position);
+
+        distance = (int)Mathf.Abs(distance);
+
+        distFromEndText.text = $"Distance Left: {distance}m";
     }
 
     void FixedUpdate()
@@ -642,9 +650,18 @@ public class ParkourController : MonoBehaviour
             }
         }
 
+
         if(other.transform.CompareTag("FinishLine"))
         {
             OpenEndScreen();
+        }
+    }
+
+    private void OnTriggerEnter(Collider other) 
+    {
+        if(other.transform.CompareTag("Checkpoints"))
+        {
+            other.transform.GetComponent<CheckPointScript>().GotCheckpoint();
         }
     }
 
@@ -653,6 +670,8 @@ public class ParkourController : MonoBehaviour
         gameFinished = true;
         endScreenUI.SetActive(true);
         scoreText.text = $"Time Taken: {TimeTxt.text}";
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     public void BackToMainMenu()
