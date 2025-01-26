@@ -652,7 +652,7 @@ public class ParkourController : MonoBehaviour
     {
         gameFinished = true;
         endScreenUI.SetActive(true);
-        scoreText.text = $"Score: {TimeTxt.text}";
+        scoreText.text = $"Time Taken: {TimeTxt.text}";
     }
 
     public void BackToMainMenu()
